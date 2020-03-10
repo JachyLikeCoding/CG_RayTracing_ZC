@@ -63,7 +63,8 @@ bool Dielectric::scatter(Ray &ray_in, HitRecord &record, Vec3f &attenuation, Ray
         ni_over_nt = refract_idx_;
         //入射角余弦
         cos = ray_in.direction_.dotProduct(record.hitnormal_) 
-                / (ray_in.direction_.length() * record.hitnormal_.length());
+                / (ray_in.direction_.length());
+        cos = sqrt(1 - ni_over_nt * ni_over_nt * (1-cos*cos));
     }
     else
     {
@@ -71,7 +72,7 @@ bool Dielectric::scatter(Ray &ray_in, HitRecord &record, Vec3f &attenuation, Ray
         outward_normal = record.hitnormal_;
         ni_over_nt = 1.0 / refract_idx_;
         cos = -ray_in.direction_.dotProduct(record.hitnormal_) 
-                / (ray_in.direction_.length() * record.hitnormal_.length());
+                / (ray_in.direction_.length());
     }
     if(refract(ray_in.direction_, outward_normal, ni_over_nt, refracted))
     {

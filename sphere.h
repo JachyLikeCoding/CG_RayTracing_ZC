@@ -33,18 +33,22 @@ bool Sphere::hit(Ray &ray, float t_min, float t_max, HitRecord &hitrecord) const
     float delta = b*b - 4*a*c;
     if(delta > 0)
     {
-        float t_temp = (-b - sqrt(delta)) / (2*a);
+        float t_temp = (-b - sqrt(delta)) / (2.0 * a);
         //优先考虑小根是否在范围内
         if(t_temp > t_min && t_temp < t_max)
         {
             hitrecord.t_ = t_temp;
             hitrecord.hitpoint_ = ray.get_t_location(t_temp);
             hitrecord.hitnormal_ = (hitrecord.hitpoint_ - center_) / radius_;
+            if(isnan(hitrecord.hitnormal_.x))
+            {
+                cout << "normal nan!!!" << endl;
+            }
             hitrecord.mtl_ptr_ = m_ptr_;
             return true;
         }
         //小根不在范围在考虑大根是否在范围内
-        t_temp = (-b + sqrt(delta)) / (2*a);
+        t_temp = (-b + sqrt(delta)) / (2.0 * a);
         if(t_temp > t_min && t_temp < t_max)
         {
             hitrecord.t_ = t_temp;
