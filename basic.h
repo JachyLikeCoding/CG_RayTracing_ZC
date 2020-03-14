@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <cmath>
+#include <math.h>
 #include <fstream>
 #include <sstream>
 #include <algorithm>

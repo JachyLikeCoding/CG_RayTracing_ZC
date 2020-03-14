@@ -4,13 +4,18 @@
 #include "imagesaver.h"
 #include "hitablelist.h"
 #include "sphere.h"
+#include "movingsphere.h"
 #include "camera.h"
 #include "material.h"
 #include "lambertian.h"
 #include "metal.h"
 #include "dielectric.h"
+#include "bvh.h"
+#include "texture.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include "std_image.h"
 
-#define testnum 10
+#define testnum 14
 
 #if testnum == 1
 bool test_image_saver()
@@ -640,5 +645,387 @@ int main()
     cout << "test finished!"<< endl;
     return 0;
 }
+#elif testnum == 11
+//运动模糊测试
+Hitable *random_scene()
+{
+    int n = 500;
+    Hitable **list = new Hitable*[n+1];
+    Texture *checker = new Checker_texture(new Constant_texture(Vec3f(0.2,0.3,0.1)), new Constant_texture(Vec3f(0.9,0.9,0.9)));
+    //list[0] = new Sphere(Vec3f(0, -1000, 0), 1000, new Lambertian(Vec3f(0.5, 0.5, 0.5)));
+    list[0] = new Sphere(Vec3f(0,-700,0),700,new Lambertian2(checker));
+    int i = 1;
+    for(int a = -6; a < 6; a++)
+    {
+        for(int b = -6; b < 6; b++)
+        {
+            //产生一个（0，1）的随机数，作为设置小球材料的阀值
+            float choose_mat = (rand()%(100)/(float)(100));
+            //使得球心的x,z坐标是（-11，11）之间的随机数
+            Vec3f center(a + 0.9 * (rand()%(100)/(float)(100)), 0.2, 
+                        b + 0.9 * (rand()%(100)/(float)(100)));
+            //避免小球的位置和最前面的大球的位置太靠近
+            if((center - Vec3f(4, 0.2, 0)).length() > 0.9)
+            {
+                //材料阀值小于0.8，则设置为漫反射球，漫反射球的衰减系数x,y,z都是（0，1）之间的随机数的平方
+                if(choose_mat < 0.8)//diffuse
+                // {
+                //     //产生运动模糊的运动球
+                //     list[i++] = new Movingsphere(center, center + Vec3f(0,0.5*drand48(),0), 0.0, 1.0, 0.2,new Lambertian(Vec3f(
+                //         (rand()%100/(float)(100))*(rand()%100/(float)(100)),
+                //         (rand()%100/(float)(100))*(rand()%100/(float)(100)),
+                //         (rand()%100/(float)(100))*(rand()%100/(float)(100))
+                //     )));
+                // }
+                {
+                    list[i++] = new Sphere(center, 0.2, new Lambertian(Vec3f(
+                        (rand()%100/(float)(100))*(rand()%100/(float)(100)),
+                        (rand()%100/(float)(100))*(rand()%100/(float)(100)),
+                        (rand()%100/(float)(100))*(rand()%100/(float)(100))
+                    )));
+                }
+                //材料阀值大于等于0.8小于0.95，则设置为镜面反射球，镜面反射球的衰减系数x,y,z及模糊系数都是（0，1）之间的随机数加一再除以2
+                else if(choose_mat < 0.95)//metal
+                {
+                    list[i++] = new Sphere(center, 0.2, new Metal(Vec3f(0.5*(1+(rand()%(100)/(float)(100))),
+                    0.5*(1+(rand()%(100)/(float)(100))),
+                    0.5*(1+(rand()%(100)/(float)(100)))),
+                    0.5*(1+(rand()%(100)/(float)(100)))));
+                }
+                //材料阀值大于等于0.95，则设置为介质球
+                else//glass
+                {
+                    list[i++] = new Sphere(center, 0.2, new Dielectric(1.5));
+                }
+            }
+        }
+    }
+    /*定义三个大球*/
+    list[i++] = new Sphere(Vec3f(0, 1, 0), 1.0, new Dielectric(1.5));
+    list[i++] = new Sphere(Vec3f(-4, 1, 0), 1.0, new Lambertian(Vec3f(0.4, 0.2, 0.1)));
+    list[i++] = new Sphere(Vec3f(4, 1, 0), 1.0, new Metal(Vec3f(0.7, 0.6, 0.5), 0.0));
+    cout << "sphere number: " << i << endl;
+    return new HitableList(i, list);
+    //return new BVH_node(i, list, 0, 0);
+}
 
+Vec3f color(Ray &ray, Hitable *world, int depth)
+{
+    HitRecord hitrecord;
+    //TODO:modify this threshold 0.001
+    if(world->hit(ray, 0.001, (numeric_limits<float>::max)(), hitrecord))
+    {
+        Ray scattered;
+        Vec3f attenuation;
+        if(hitrecord.mtl_ptr_->scatter(ray, hitrecord, attenuation, scattered)
+            && depth < 50)
+        {
+            return attenuation * color(scattered, world, depth + 1);
+        }
+        else
+        {
+            return Vec3f(0, 0, 0);
+        }
+    }
+    else
+    {
+        float t = 0.5 * (ray.direction_.y + 1.0);
+        return (1.0 - t) * Vec3f(1.0, 1.0, 1.0) + t * Vec3f(0.5, 0.7, 1.0);
+    }
+}
+
+int main()
+{
+    int nx = 600;
+    int ny = 300;
+    int times = 100;
+    //Camera camera(90, float(nx)/float(ny));
+    Vec3f lookfrom(13,2,3);
+    Vec3f lookat(0,0,0);
+    float focus_distance = 10.0;
+    float aperture = 0.0;
+    //散焦效果相机
+    Camera camera(20, float(nx)/float(ny), lookfrom, lookat, Vec3f(0,1,0), aperture, focus_distance, 0.0, 1.0);
+    vector<Vec3f> pixeldata;
+    Hitable *world = random_scene();
+
+
+    for(int j = ny - 1; j >= 0; j--)
+    {
+        for(int i = 0; i < nx; i++)
+        {
+            Vec3f col(0, 0, 0);
+            for(int s = 0; s < times; s++)
+            {
+                float u = float(i + rand()%(100)/(float)(100)) / float(nx);
+                float v = float(j + rand()%(100)/(float)(100)) / float(ny);
+                Ray ray = camera.get_uv_ray(u, v);
+                col += color(ray, world, 0.0);
+            }
+            col /= float(times);
+            col = Vec3f(sqrt(col.x), sqrt(col.y), sqrt(col.z));
+            if(col.x != col.x)
+            {
+                col.x = (float)0.0;
+                cerr << "color.x is out of range!!!" << endl;
+            }
+            if(col.y != col.y)
+            {
+                col.y = (float)0.0;
+                cerr << "color.y is out of range!!!" << endl;
+            }
+            if(col.z != col.z)
+            {
+                col.z = (float)0.0;
+                cerr << "color.z is out of range!!!" << endl;
+            }
+            int ir = int(255.99 * col.x);
+            int ig = int(255.99 * col.y);
+            int ib = int(255.99 * col.z);
+            //cout << ir << " " << ig << " " << ib << endl;
+            pixeldata.push_back(Vec3f(ir, ig, ib));
+        }
+    }
+    Vec3f *data = &pixeldata[0];
+    string filename = "bvh_test.ppm";
+    save_ppm_image(filename, nx, ny, data);
+
+    cout << "test finished!"<< endl;
+    return 0;
+}
+#elif testnum == 12
+//柏林噪声纹理测试
+Hitable *two_perlin_spheres()
+{
+    Texture *perlin_texture = new Noise_texture(2);
+    Hitable **list = new Hitable*[2];
+    list[0] = new Sphere(Vec3f(0,-1000,0), 1000, new Lambertian2(perlin_texture));
+    list[1] = new Sphere(Vec3f(0,2,0), 2, new Lambertian2(perlin_texture));
+    return new HitableList(2, list);
+}
+
+Vec3f color(Ray &ray, Hitable *world, int depth)
+{
+    HitRecord hitrecord;
+    //TODO:modify this threshold 0.001
+    if(world->hit(ray, 0.001, (numeric_limits<float>::max)(), hitrecord))
+    {
+        Ray scattered;
+        Vec3f attenuation;
+        if(hitrecord.mtl_ptr_->scatter(ray, hitrecord, attenuation, scattered)
+            && depth < 50)
+        {
+            return attenuation * color(scattered, world, depth + 1);
+        }
+        else
+        {
+            return Vec3f(0, 0, 0);
+        }
+    }
+    else
+    {
+        float t = 0.5 * (ray.direction_.y + 1.0);
+        return (1.0 - t) * Vec3f(1.0, 1.0, 1.0) + t * Vec3f(0.5, 0.7, 1.0);
+    }
+}
+
+int main()
+{
+    int nx = 600;
+    int ny = 300;
+    int times = 100;
+    //Camera camera(90, float(nx)/float(ny));
+    Vec3f lookfrom(13,2,3);
+    Vec3f lookat(0,0,0);
+    float focus_distance = 10.0;
+    float aperture = 0.0;
+    Camera camera(20, float(nx)/float(ny), lookfrom, lookat, Vec3f(0,1,0), aperture, focus_distance);
+    vector<Vec3f> pixeldata;
+    Hitable *world = two_perlin_spheres();
+
+
+    for(int j = ny - 1; j >= 0; j--)
+    {
+        for(int i = 0; i < nx; i++)
+        {
+            Vec3f col(0, 0, 0);
+            for(int s = 0; s < times; s++)
+            {
+                float u = float(i + rand()%(10000)/(float)(10000)) / float(nx);
+                float v = float(j + rand()%(10000)/(float)(10000)) / float(ny);
+                Ray ray = camera.get_uv_ray(u, v);
+                col += color(ray, world, 0.0);
+            }
+            col /= float(times);
+            col = Vec3f(sqrt(col.x), sqrt(col.y), sqrt(col.z));
+            int ir = int(255.99 * col.x);
+            int ig = int(255.99 * col.y);
+            int ib = int(255.99 * col.z);
+            //cout << ir << " " << ig << " " << ib << endl;
+            pixeldata.push_back(Vec3f(ir, ig, ib));
+        }
+    }
+    Vec3f *data = &pixeldata[0];
+    string filename = "perlin_noise_texture_test.ppm";
+    save_ppm_image(filename, nx, ny, data);
+
+    cout << "test finished!"<< endl;
+    return 0;
+}
+
+#elif testnum == 13
+//图片纹理测试
+Hitable *image_texture_sphere()
+{
+    int nx,ny,nn;
+    unsigned char *texture_data = stbi_load("dalishi.jpg", &nx, &ny, &nn, 0);
+    cout << nx << ", " << ny << ", " << nn << endl;
+    Texture *image_texture = new Image_texture(texture_data, nx, ny);
+    Material *mtl = new Lambertian2(image_texture);
+    return new Sphere(Vec3f(0,0,0), 2, mtl);
+}
+
+Vec3f color(Ray &ray, Hitable *world, int depth)
+{
+    HitRecord hitrecord;
+    //modify this threshold 0.001
+    if(world->hit(ray, 0.001, MAXFLOAT, hitrecord))
+    {
+        Ray scattered;
+        Vec3f attenuation;
+        Vec3f emitted = hitrecord.mtl_ptr_->emitted(hitrecord.u_, hitrecord.v_, hitrecord.hitpoint_); 
+        if(hitrecord.mtl_ptr_->scatter(ray, hitrecord, attenuation, scattered)
+            && depth < 50)
+        {
+            return attenuation * color(scattered, world, depth + 1) + emitted;
+        }
+        else
+            return emitted;
+    }
+    else
+    {
+        //float t = 0.5 * (ray.direction_.y + 1.0);
+        //return (1.0 - t) * Vec3f(1.0, 1.0, 1.0) + t * Vec3f(0.5, 0.7, 1.0);
+        return Vec3f(0.0, 0.0, 0.0);
+    }
+}
+
+int main()
+{
+    int nx = 600;
+    int ny = 300;
+    int times = 100;
+    Vec3f lookfrom(13,2,3);
+    Vec3f lookat(0,0,0);
+    float focus_distance = 10.0;
+    float aperture = 0.0;
+    Camera camera(20, float(nx)/float(ny), lookfrom, lookat, Vec3f(0,1,0), aperture, focus_distance);
+    vector<Vec3f> pixeldata;
+    Hitable *world = image_texture_sphere();
+
+    for(int j = ny - 1; j >= 0; j--)
+    {
+        for(int i = 0; i < nx; i++)
+        {
+            Vec3f col(0, 0, 0);
+            for(int s = 0; s < times; s++)
+            {
+                float u = float(i + rand()%(10000)/(float)(10000)) / float(nx);
+                float v = float(j + rand()%(10000)/(float)(10000)) / float(ny);
+                Ray ray = camera.get_uv_ray(u, v);
+                col += color(ray, world, 0.0);
+            }
+            col /= float(times);
+            col = Vec3f(sqrt(col.x), sqrt(col.y), sqrt(col.z));
+            int ir = int(255.99 * col.x);
+            int ig = int(255.99 * col.y);
+            int ib = int(255.99 * col.z);
+            pixeldata.push_back(Vec3f(ir, ig, ib));
+        }
+    }
+    Vec3f *data = &pixeldata[0];
+    string filename = "dalishi_texture_test.ppm";
+    save_ppm_image(filename, nx, ny, data);
+
+    cout << "test finished!"<< endl;
+    return 0;
+}
+#elif testnum == 14
+//自发光材质测试
+Hitable *image_texture_sphere()
+{
+    int n = 500;
+    Hitable **list = new Hitable*[n+1];
+    list[0] = new Sphere(Vec3f(0, -1000, 0), 1000, new Lambertian(Vec3f(0.5, 0.5, 0.5)));
+    int i = 1;
+    Material *mtl = new Diffuse_material(new Constant_texture(Vec3f(1,1,1)));
+    list[i++] = new Sphere(Vec3f(0,1,0), 1, mtl);
+    return new HitableList(i, list);
+}
+
+Vec3f color(Ray &ray, Hitable *world, int depth)
+{
+    HitRecord hitrecord;
+    //modify this threshold 0.001
+    if(world->hit(ray, 0.001, MAXFLOAT, hitrecord))
+    {
+        Ray scattered;
+        Vec3f attenuation;
+        Vec3f emitted = hitrecord.mtl_ptr_->emitted(hitrecord.u_, hitrecord.v_, hitrecord.hitpoint_); 
+        if(hitrecord.mtl_ptr_->scatter(ray, hitrecord, attenuation, scattered)
+            && depth < 50)
+        {
+            return attenuation * color(scattered, world, depth + 1) + emitted;
+        }
+        else
+            return emitted;
+    }
+    else
+    {
+        //float t = 0.5 * (ray.direction_.y + 1.0);
+        //return (1.0 - t) * Vec3f(1.0, 1.0, 1.0) + t * Vec3f(0.5, 0.7, 1.0);
+        return Vec3f(0.0, 0.0, 0.0);
+    }
+}
+
+int main()
+{
+    int nx = 600;
+    int ny = 300;
+    int times = 100;
+    Vec3f lookfrom(13,2,3);
+    Vec3f lookat(0,0,0);
+    float focus_distance = 10.0;
+    float aperture = 0.0;
+    Camera camera(20, float(nx)/float(ny), lookfrom, lookat, Vec3f(0,1,0), aperture, focus_distance);
+    vector<Vec3f> pixeldata;
+    Hitable *world = image_texture_sphere();
+
+    for(int j = ny - 1; j >= 0; j--)
+    {
+        for(int i = 0; i < nx; i++)
+        {
+            Vec3f col(0, 0, 0);
+            for(int s = 0; s < times; s++)
+            {
+                float u = float(i + rand()%(10000)/(float)(10000)) / float(nx);
+                float v = float(j + rand()%(10000)/(float)(10000)) / float(ny);
+                Ray ray = camera.get_uv_ray(u, v);
+                col += color(ray, world, 0.0);
+            }
+            col /= float(times);
+            col = Vec3f(sqrt(col.x), sqrt(col.y), sqrt(col.z));
+            int ir = int(255.99 * col.x);
+            int ig = int(255.99 * col.y);
+            int ib = int(255.99 * col.z);
+            pixeldata.push_back(Vec3f(ir, ig, ib));
+        }
+    }
+    Vec3f *data = &pixeldata[0];
+    string filename = "diffuse_material_test.ppm";
+    save_ppm_image(filename, nx, ny, data);
+
+    cout << "test finished!"<< endl;
+    return 0;
+}
 #endif

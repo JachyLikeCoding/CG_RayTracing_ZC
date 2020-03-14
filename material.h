@@ -1,9 +1,9 @@
- #ifndef MATERIAL_H
- #define MATERIAL_H
+#ifndef MATERIAL_H
+#define MATERIAL_H
 
- #include "basic.h"
- #include "hitable.h"
-
+#include "basic.h"
+#include "hitable.h"
+#include "texture.h"
 // class MaterialAttribute
 // {
 // public:
@@ -162,8 +162,25 @@
 class Material
 {
 public:
+    //散射
     virtual bool scatter(Ray &ray_in, HitRecord &record, Vec3f &attenuation, Ray &scattered) const = 0;
+    //不是自发光材质的默认黑色，自发光材料子类重写
+    virtual Vec3f emitted(float u, float v, const Vec3f &p) const
+    {
+        return Vec3f(0,0,0);//默认黑色
+    }
 };
 
-
+//自发光材质
+class Diffuse_material : public Material{
+public:
+    Texture *emit_texture_;
+    Diffuse_material(Texture *tex):emit_texture_(tex){}
+    virtual bool scatter(Ray &ray_in, HitRecord &record, Vec3f &attenuation, Ray &scattered) const{return false;}
+    
+    virtual Vec3f emitted(float u, float v, const Vec3f &p) const
+    {
+        return emit_texture_->value(u, v, p);
+    }
+};
 #endif

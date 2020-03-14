@@ -6,6 +6,14 @@
 #include "hitable.h"
 #include "material.h"
 
+void get_sphere_uv(const Vec3f &p, float &u, float &v)
+{
+    float phi = atan2(p.z, p.x);    //phi ∈ [-PI,PI)
+    float theta = asin(p.y);    //theta ∈ [-PI/2, PI/2)
+    u = 1 - (phi + PI)/(2*PI);
+    v = (theta + PI/2)/PI;
+}
+
 class Sphere: public Hitable
 {
 public:
@@ -21,6 +29,7 @@ public:
     }
     ~Sphere();
     virtual bool hit(Ray &ray, float t_min, float t_max, HitRecord &hitrecord) const;
+    virtual bool bounding_box(float t0, float t1, AABB &box) const;
 };
 
 
@@ -39,6 +48,7 @@ bool Sphere::hit(Ray &ray, float t_min, float t_max, HitRecord &hitrecord) const
         {
             hitrecord.t_ = t_temp;
             hitrecord.hitpoint_ = ray.get_t_location(t_temp);
+            get_sphere_uv((hitrecord.hitpoint_ - center_)/radius_, hitrecord.u_, hitrecord.v_);
             hitrecord.hitnormal_ = (hitrecord.hitpoint_ - center_) / radius_;
             if(isnan(hitrecord.hitnormal_.x))
             {
@@ -53,6 +63,7 @@ bool Sphere::hit(Ray &ray, float t_min, float t_max, HitRecord &hitrecord) const
         {
             hitrecord.t_ = t_temp;
             hitrecord.hitpoint_ = ray.get_t_location(t_temp);
+            get_sphere_uv((hitrecord.hitpoint_ - center_)/radius_, hitrecord.u_, hitrecord.v_);
             hitrecord.hitnormal_ = (hitrecord.hitpoint_ - center_) / radius_;
             hitrecord.mtl_ptr_ = m_ptr_;
             return true;
@@ -61,5 +72,11 @@ bool Sphere::hit(Ray &ray, float t_min, float t_max, HitRecord &hitrecord) const
     return false;
 }
 
+bool Sphere::bounding_box(float t0, float t1, AABB &box) const
+{
+    box = AABB(center_ - Vec3f(radius_,radius_,radius_),
+                center_ + Vec3f(radius_,radius_,radius_));
+    return true;
+}
 
 #endif
