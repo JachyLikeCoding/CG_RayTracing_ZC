@@ -163,9 +163,12 @@ class Material
 {
 public:
     //散射
-    virtual bool scatter(Ray &ray_in, HitRecord &record, Vec3f &attenuation, Ray &scattered) const = 0;
+    virtual bool scatter(Ray &ray_in, HitRecord &record, Vec3f &attenuation, Ray &scattered, float &pdf) const{return false;}
+    
+    virtual float scatter_pdf(Ray &ray_in, HitRecord &record, Ray &scattered) const{return 0;}
+
     //不是自发光材质的默认黑色，自发光材料子类重写
-    virtual Vec3f emitted(float u, float v, const Vec3f &p) const
+    virtual Vec3f emitted(Ray &ray_in, HitRecord &record, float u, float v, const Vec3f &p) const
     {
         return Vec3f(0,0,0);//默认黑色
     }
@@ -177,10 +180,18 @@ public:
     Texture *emit_texture_;
     Diffuse_material(Texture *tex):emit_texture_(tex){}
     virtual bool scatter(Ray &ray_in, HitRecord &record, Vec3f &attenuation, Ray &scattered) const{return false;}
-    
-    virtual Vec3f emitted(float u, float v, const Vec3f &p) const
+
+    virtual Vec3f emitted(Ray &ray_in, HitRecord &record, float u, float v, const Vec3f &p) const
     {
-        return emit_texture_->value(u, v, p);
+        //反射光线与反射之后与法向量的夹角为锐角的时候才进行纹理计算
+        if(record.hitnormal_.dotProduct(ray_in.direction_) < 0.0)
+        {
+            return emit_texture_->value(u, v, p);
+        }
+        else
+        {
+            return Vec3f(0, 0, 0);
+        }
     }
 };
 #endif

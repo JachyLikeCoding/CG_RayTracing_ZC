@@ -19,7 +19,7 @@
 using namespace std;
 #define PI 3.141592653589793
 
-static const float kEpsilon = 1e-5;
+static const float kEpsilon = 1e-6;
 static const Vec3f kDefaultBackgroundColor(0, 0, 0);
 
 #endif

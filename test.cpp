@@ -14,8 +14,10 @@
 #include "texture.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "std_image.h"
+#include "rectangle.h"
+#include "cube.h"
 
-#define testnum 14
+#define testnum 15
 
 #if testnum == 1
 bool test_image_saver()
@@ -950,16 +952,47 @@ int main()
     cout << "test finished!"<< endl;
     return 0;
 }
-#elif testnum == 14
+
 //自发光材质测试
 Hitable *image_texture_sphere()
 {
     int n = 500;
     Hitable **list = new Hitable*[n+1];
-    list[0] = new Sphere(Vec3f(0, -1000, 0), 1000, new Lambertian(Vec3f(0.5, 0.5, 0.5)));
+    list[0] = new Sphere(Vec3f(0, -1000, -3), 1000, new Lambertian2(Vec3f(0.5, 0.5, 0.5)));
     int i = 1;
     Material *mtl = new Diffuse_material(new Constant_texture(Vec3f(1,1,1)));
-    list[i++] = new Sphere(Vec3f(0,1,0), 1, mtl);
+    list[i++] = new Sphere(Vec3f(0,1,-3), 1, mtl);
+    return new HitableList(i, list);
+}
+#elif testnum == 14
+//矩形测试
+Hitable *rectangle_test()
+{
+    Texture *pertext = new Noise_texture(5);
+    Hitable **list = new Hitable*[4];
+    list[0] = new Sphere(Vec3f(0,-1000,0), 1000, new Lambertian2(pertext));
+    list[1] = new Sphere(Vec3f(0,2,0), 2, new Lambertian2(pertext));
+    list[2] = new Sphere(Vec3f(0,7,0), 2, new Diffuse_material(new Constant_texture(Vec3f(4,4,4))));
+    list[3] = new XY_rectangle(3,5,1,3,-2, new Diffuse_material(new Constant_texture(Vec3f(4,4,4))));
+    return new HitableList(4,list);
+}
+
+Hitable *cornellbox()
+{
+    Hitable **list = new Hitable*[6];
+    int i = 0;
+    Material *red = new Lambertian2(new Constant_texture(Vec3f(0.65,0.05,0.05)));
+    Material *white = new Lambertian2(new Constant_texture(Vec3f(0.73,0.73,0.73)));
+    Material *green = new Lambertian2(new Constant_texture(Vec3f(0.12,0.45,0.15)));
+    Material *light = new Diffuse_material(new Constant_texture(Vec3f(15,15,15)));
+    list[i++] = new Turn_normal(new YZ_rectangle(0, 555, 0, 555, 555, green));
+    list[i++] = new YZ_rectangle(0, 555, 0, 555, 0, red);
+    list[i++] = new XZ_rectangle(213, 343, 227, 332, 554, light);
+    list[i++] = new Turn_normal(new XZ_rectangle(0, 555, 0, 555, 555, white));
+    list[i++] = new XZ_rectangle(0, 555, 0, 555, 0, white);
+    list[i++] = new Turn_normal(new XY_rectangle(0, 555, 0, 555, 555, white));
+    list[i++] = new Cube(Vec3f(130,0,65), Vec3f(295,165,230), white);
+    list[i++] = new Cube(Vec3f(265,0,295), Vec3f(430,330,460), white);
     return new HitableList(i, list);
 }
 
@@ -990,16 +1023,16 @@ Vec3f color(Ray &ray, Hitable *world, int depth)
 
 int main()
 {
-    int nx = 600;
-    int ny = 300;
-    int times = 100;
-    Vec3f lookfrom(13,2,3);
-    Vec3f lookat(0,0,0);
+    int nx = 400;
+    int ny = 400;
+    int times = 200;
+    Vec3f lookfrom(278,278,-800);
+    Vec3f lookat(278,278,0);
     float focus_distance = 10.0;
     float aperture = 0.0;
-    Camera camera(20, float(nx)/float(ny), lookfrom, lookat, Vec3f(0,1,0), aperture, focus_distance);
+    Camera camera(40, float(nx)/float(ny), lookfrom, lookat, Vec3f(0,1,0), aperture, focus_distance, 0.0, 1.0);
     vector<Vec3f> pixeldata;
-    Hitable *world = image_texture_sphere();
+    Hitable *world = cornellbox();
 
     for(int j = ny - 1; j >= 0; j--)
     {
@@ -1022,7 +1055,7 @@ int main()
         }
     }
     Vec3f *data = &pixeldata[0];
-    string filename = "diffuse_material_test.ppm";
+    string filename = "cornellbox_test.ppm";
     save_ppm_image(filename, nx, ny, data);
 
     cout << "test finished!"<< endl;
