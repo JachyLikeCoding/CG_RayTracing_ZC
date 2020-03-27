@@ -16,7 +16,6 @@ public:
     Vec3f getmin(){ return min_; }
     Vec3f getmax(){ return max_; }
 
-    //TODO:是否inline的效率对比
     //左大右小(左区间区max，右区间取min，比较2个值，如果左<右，为真)发生重叠。
     inline bool hit(float t_min, float t_max, Ray &ray) const
     {

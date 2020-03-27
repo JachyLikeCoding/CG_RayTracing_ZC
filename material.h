@@ -4,6 +4,8 @@
 #include "basic.h"
 #include "hitable.h"
 #include "texture.h"
+#include "pdf.h"
+
 // class MaterialAttribute
 // {
 // public:
@@ -144,7 +146,6 @@
 //     bool transparent_;
 //     bool specular_;
 //     bool diffuse_;
-
 //     Material(){}
 //     Material(string mtlname)
 //     {
@@ -154,32 +155,56 @@
 //         specular_ = false;
 //         diffuse_ = false;
 //     }
-
 // };
-
 // #endif
+
+struct ScatterRecord
+{
+    Ray specular_ray_;
+    bool is_specular_;
+    Vec3f attenuation_;
+    PDF *pdf_ptr_;
+};
 
 class Material
 {
 public:
+    bool is_important_sample;
+    Material(){is_important_sample = false;}
+    virtual ~Material(){}
     //散射
-    virtual bool scatter(Ray &ray_in, HitRecord &record, Vec3f &attenuation, Ray &scattered, float &pdf) const{return false;}
-    
-    virtual float scatter_pdf(Ray &ray_in, HitRecord &record, Ray &scattered) const{return 0;}
+    //virtual bool scatter(Ray &ray_in, HitRecord &record, Vec3f &attenuation, Ray &scattered, float &pdf) const{return false;}
+    virtual bool scatter(Ray &ray_in, HitRecord &hitrecord, ScatterRecord &scatterrecord) const
+    {
+        return false;
+    }
 
+    virtual float scatter_pdf(Ray &ray_in, HitRecord &record, Ray &scattered) const
+    {
+        //TODO: CHECK here
+        return 0.0;
+    }
     //不是自发光材质的默认黑色，自发光材料子类重写
     virtual Vec3f emitted(Ray &ray_in, HitRecord &record, float u, float v, const Vec3f &p) const
     {
-        return Vec3f(0,0,0);//默认黑色
+        return Vec3f(0.0, 0.0, 0.0);//默认黑色
     }
 };
 
 //自发光材质
-class Diffuse_material : public Material{
+class Diffuse_light : public Material{
 public:
     Texture *emit_texture_;
-    Diffuse_material(Texture *tex):emit_texture_(tex){}
-    virtual bool scatter(Ray &ray_in, HitRecord &record, Vec3f &attenuation, Ray &scattered) const{return false;}
+    Texture *albedo_texture_;
+    Diffuse_light(Texture *emittex, Texture *albedotex):emit_texture_(emittex), albedo_texture_(albedotex)
+    {
+        is_important_sample = true;
+    }
+   
+    virtual bool scatter(Ray &ray_in, HitRecord &hitrecord, ScatterRecord &scatterrecord) const
+    {
+        return false;
+    }
 
     virtual Vec3f emitted(Ray &ray_in, HitRecord &record, float u, float v, const Vec3f &p) const
     {
@@ -192,6 +217,34 @@ public:
         {
             return Vec3f(0, 0, 0);
         }
+    }
+};
+
+//漫反射材质
+class Lambertian : public Material {
+public:
+    Texture *albedo_;   
+
+    Lambertian(Texture *a) : albedo_(a) {is_important_sample = false;}
+    virtual ~Lambertian(){}
+
+    bool scatter(Ray &ray_in, HitRecord &hitrecord, ScatterRecord &srecord) const  
+    {
+        srecord.is_specular_ = false;
+        srecord.attenuation_ = albedo_->value(hitrecord.u_, hitrecord.v_, hitrecord.hitpoint_);
+        srecord.pdf_ptr_ = new Cosine_PDF(hitrecord.hitnormal_);
+        return true;
+    }
+
+    float scatter_pdf(Ray &ray_in, HitRecord &record, Ray &scattered) const
+    {
+        float cos = record.hitnormal_.dotProduct(scattered.direction_.normalize());
+        //cosine值是散射光线和表面法线的夹角余弦，角大于90°无效，表示采样失败
+        if(cos < 0.0)
+        {
+            return 0.0;
+        }
+        return cos / PI;
     }
 };
 #endif

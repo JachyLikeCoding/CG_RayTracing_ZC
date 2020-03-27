@@ -53,7 +53,7 @@ class XZ_rectangle : public Hitable
 {
 public:
     float x0_, z0_, x1_, z1_;
-    float k_;
+    float k_;//y平面的值
     Material *m_ptr_;
 
     XZ_rectangle(){}
@@ -64,6 +64,26 @@ public:
     {
         box = AABB(Vec3f(x0_, k_-0.0001, z0_), Vec3f(x1_, k_+0.0001, z1_));
         return true;
+    }
+    virtual float get_pdf_value(const Vec3f &o, const Vec3f &v) const
+    {
+        HitRecord record;
+        Ray ray(o, v);
+        if(this->hit(ray, 0.001, MAXFLOAT, record))
+        {
+            float area = (x1_ - x0_) * (z1_ - z0_);
+            float distance_2 = record.t_ * record.t_ * v.length() * v.length();
+            float cos = fabs(v.dotProduct(record.hitnormal_) / v.length());
+            return distance_2 / (cos * area); 
+        }
+        else
+            return 0;
+    }
+
+    virtual Vec3f random(const Vec3f &o) const
+    {
+        Vec3f random_point = Vec3f(x0_+(x1_-x0_)*drand48(), k_, z0_+(z1_-z0_)*drand48());
+        return random_point - o;
     }
 };
 

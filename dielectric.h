@@ -5,12 +5,18 @@
 #include "material.h"
 #include "metal.h"
 
+//玻璃材质
 class Dielectric : public Material
 {
 public:
     float refract_idx_;//光密介质的折射指数和光疏介质的折射指数的比值
-    Dielectric(float refract_idx){ refract_idx_ = refract_idx; }
-    virtual bool scatter(Ray &ray_in, HitRecord &record, Vec3f &attenuation, Ray &scattered) const;
+    Dielectric(float refract_idx)
+    {
+        refract_idx_ = refract_idx; 
+        is_important_sample = true;
+    }
+    virtual ~Dielectric(){}
+    virtual bool scatter(Ray &ray_in, HitRecord &record, ScatterRecord &srecord) const;
 };
 
 //计算折射光线的方向向量
@@ -46,55 +52,59 @@ float schlick(float cos, float refract_idx)
     return (r0 + (1 - r0) * pow((1-cos), 5));
 }
 
-bool Dielectric::scatter(Ray &ray_in, HitRecord &record, Vec3f &attenuation, Ray &scattered) const
+bool Dielectric::scatter(Ray &ray_in, HitRecord &hitrecord, ScatterRecord &srecord) const
 {
+    srecord.is_specular_ = true;
+    srecord.pdf_ptr_ = nullptr;
+    srecord.attenuation_ = Vec3f(1.0, 1.0, 1.0);//不是光线不衰减
     Vec3f outward_normal;
-    Vec3f reflected = reflect_dir(ray_in.direction_, record.hitnormal_);
-    float ni_over_nt;//入射介质的折射指数和折射介质的折射指数的比值
-    attenuation = Vec3f(1.0, 1.0, 1.0);//不是光线不衰减
+    Vec3f reflected = reflect_dir(ray_in.direction_, hitrecord.hitnormal_);
     Vec3f refracted;//折射光
+    float ni_over_nt;//入射介质的折射指数和折射介质的折射指数的比值
     float cos;
     float reflect_prob;//反射系数，决定反射光线和折射光线的叠加
-    if(ray_in.direction_.dotProduct(record.hitnormal_) > 0)
+    if(ray_in.direction_.dotProduct(hitrecord.hitnormal_) > 0.0)
     {
         //光线从球内部射入空气。所以入射时法向量与球的法向量方向相反。
         //此时入射介质是光密介质，折射介质是光疏介质
-        outward_normal = -record.hitnormal_;
+        outward_normal = -hitrecord.hitnormal_;
         ni_over_nt = refract_idx_;
+        cos = refract_idx_ * ray_in.direction_.dotProduct(hitrecord.hitnormal_)/(ray_in.direction_.length()); 
         //入射角余弦
-        cos = ray_in.direction_.dotProduct(record.hitnormal_) 
-                / (ray_in.direction_.length());
-        cos = sqrt(1 - ni_over_nt * ni_over_nt * (1-cos*cos));
+        //cos = ray_in.direction_.dotProduct(hitrecord.hitnormal_) 
+        //        / (ray_in.direction_.length());
+        //cos = sqrt(1 - ni_over_nt * ni_over_nt * (1-cos*cos));
     }
     else
     {
         //从空气->球体。所以入射时法向量与球的法向量方向相同。
-        outward_normal = record.hitnormal_;
+        outward_normal = hitrecord.hitnormal_;
         ni_over_nt = 1.0 / refract_idx_;
-        cos = -ray_in.direction_.dotProduct(record.hitnormal_) 
+        cos = -ray_in.direction_.dotProduct(hitrecord.hitnormal_) 
                 / (ray_in.direction_.length());
     }
     if(refract(ray_in.direction_, outward_normal, ni_over_nt, refracted))
     {
         //发生了折射，计算反射系数
-        reflect_prob = schlick(cos, ni_over_nt);
-        //scattered = Ray(record.hitpoint_, refracted);
+        reflect_prob = schlick(cos, refract_idx_);
+        //reflect_prob = schlick(cos, ni_over_nt);
     }
     else
     {
         //全反射
         //scattered = Ray(record.hitpoint_, reflected);
         //return false;
+        srecord.specular_ray_ = Ray(hitrecord.hitpoint_, reflected);
         reflect_prob = 1.0;
     }
     //叠加反射光线和折射光线
-    if((rand()%(100)/(float)(100))< reflect_prob)
+    if(drand48() < reflect_prob)
     {
-        scattered = Ray(record.hitpoint_, reflected);
+        srecord.specular_ray_ = Ray(hitrecord.hitpoint_, reflected);
     }
     else
     {
-        scattered = Ray(record.hitpoint_, refracted);
+        srecord.specular_ray_ = Ray(hitrecord.hitpoint_, refracted);
     }
     return true;//有折射光线
 }
