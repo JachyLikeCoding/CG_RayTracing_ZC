@@ -5,12 +5,18 @@
 #include "material.h"
 #include "metal.h"
 
-//玻璃材质
+//玻璃材质-----------------------------------------------------------------------glass
 class Dielectric : public Material
 {
 public:
     float refract_idx_;//光密介质的折射指数和光疏介质的折射指数的比值
     Dielectric(float refract_idx)
+    {
+        refract_idx_ = refract_idx; 
+        is_important_sample = true;
+    }
+
+    Dielectric(string name, float refract_idx)
     {
         refract_idx_ = refract_idx; 
         is_important_sample = true;

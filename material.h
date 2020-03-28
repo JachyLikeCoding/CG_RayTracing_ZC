@@ -169,6 +169,7 @@ struct ScatterRecord
 class Material
 {
 public:
+    string material_name_;
     bool is_important_sample;
     Material(){is_important_sample = false;}
     virtual ~Material(){}
@@ -191,13 +192,18 @@ public:
     }
 };
 
-//自发光材质
+//自发光材质-----------------------------------------------------------------------diffuse light
 class Diffuse_light : public Material{
 public:
     Texture *emit_texture_;
     Texture *albedo_texture_;
     Diffuse_light(Texture *emittex, Texture *albedotex):emit_texture_(emittex), albedo_texture_(albedotex)
     {
+        is_important_sample = true;
+    }
+    Diffuse_light(string name, Texture *emittex, Texture *albedotex):emit_texture_(emittex), albedo_texture_(albedotex)
+    {
+        material_name_ = name;
         is_important_sample = true;
     }
    
@@ -220,12 +226,17 @@ public:
     }
 };
 
-//漫反射材质
+//漫反射材质-----------------------------------------------------------------lambertian
 class Lambertian : public Material {
 public:
     Texture *albedo_;   
 
     Lambertian(Texture *a) : albedo_(a) {is_important_sample = false;}
+    Lambertian(string name, Texture *a) : albedo_(a) 
+    {
+        is_important_sample = false;
+        material_name_ = name;
+    }
     virtual ~Lambertian(){}
 
     bool scatter(Ray &ray_in, HitRecord &hitrecord, ScatterRecord &srecord) const  

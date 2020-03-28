@@ -10,6 +10,7 @@ public:
     //Hitable **list_;
     vector<Hitable *> m_list_;
     int list_size_;
+
     HitableList(){}
     // HitableList(int size, Hitable **list) 
     // {
@@ -19,7 +20,7 @@ public:
     ~HitableList(){}
     //实现父类虚函数
     virtual bool hit(Ray &ray, float t_min, float t_max, HitRecord &hitrecord) const;
-    AABB surrounding_box(AABB &box0, AABB &box1) const;
+    //AABB surrounding_box(AABB &box0, AABB &box1) const;
     virtual bool bounding_box(float t0, float t1, AABB &box) const;
     virtual float get_pdf_value(const Vec3f &o, const Vec3f &v) const;
     virtual Vec3f random(const Vec3f &o) const;
@@ -51,17 +52,17 @@ bool HitableList::hit(Ray &ray, float t_min, float t_max, HitRecord &hitrecord) 
     return has_hit;
 }
 
-//重构包围盒
-AABB HitableList::surrounding_box(AABB &box0, AABB &box1) const
-{
-    Vec3f boxmin(fmin(box0.getmin()[0], box1.getmin()[0]),
-                fmin(box0.getmin()[1], box1.getmin()[1]),
-                fmin(box0.getmin()[2], box1.getmin()[2]));
-    Vec3f boxmax(fmax(box0.getmax()[0], box1.getmax()[0]),
-            fmax(box0.getmax()[1], box1.getmax()[1]),
-            fmax(box0.getmax()[2], box1.getmax()[2]));
-    return AABB(boxmin, boxmax);
-}
+// //重构包围盒
+// AABB HitableList::surrounding_box(AABB &box0, AABB &box1) const
+// {
+//     Vec3f boxmin(fmin(box0.getmin()[0], box1.getmin()[0]),
+//                 fmin(box0.getmin()[1], box1.getmin()[1]),
+//                 fmin(box0.getmin()[2], box1.getmin()[2]));
+//     Vec3f boxmax(fmax(box0.getmax()[0], box1.getmax()[0]),
+//             fmax(box0.getmax()[1], box1.getmax()[1]),
+//             fmax(box0.getmax()[2], box1.getmax()[2]));
+//     return AABB(boxmin, boxmax);
+// }
 
 bool HitableList::bounding_box(float t0, float t1, AABB &box) const
 {
@@ -83,7 +84,7 @@ bool HitableList::bounding_box(float t0, float t1, AABB &box) const
     {
         if(m_list_[i]->bounding_box(t0,t1,tempbox))
         {
-            box = surrounding_box(box, tempbox);
+            box = AABB::surrounding_box(box, tempbox);
         }
         else
         {

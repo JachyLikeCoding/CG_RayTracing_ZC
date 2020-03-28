@@ -79,64 +79,34 @@ bool BVH_node::hit(Ray &ray, float t_min, float t_max, HitRecord &hitrecord) con
     }  
 }
 
-int compare_x(const void *a, const void *b)
+static bool compare_x(const Hitable *a, const Hitable *b)
 {
     AABB leftbox, rightbox;
-    Hitable *hita = *(Hitable**)a;
-    Hitable *hitb = *(Hitable**)b;
-    if(!hita->bounding_box(0,0,leftbox) || !hitb->bounding_box(0,0,rightbox))
+    if(!a->bounding_box(0,0,leftbox) || !b->bounding_box(0,0,rightbox))
     {
         cerr << "BVH node has no bounding box." << endl;
     }
-    if(leftbox.min_.x - rightbox.min_.x < 0.0)
-    {
-        return -1;
-    }
-    else
-    {
-        return 1;
-    }
-    
+    return leftbox.getmin().x < rightbox.getmin().x;
 }
 
-int compare_y(const void *a, const void *b)
+static bool compare_y(const Hitable *a, const Hitable *b)
 {
     AABB leftbox, rightbox;
-    Hitable *hita = *(Hitable**)a;
-    Hitable *hitb = *(Hitable**)b;
-    if(!hita->bounding_box(0,0,leftbox) || !hitb->bounding_box(0,0,rightbox))
+    if(!a->bounding_box(0,0,leftbox) || !b->bounding_box(0,0,rightbox))
     {
         cerr << "BVH node has no bounding box." << endl;
     }
-    if(leftbox.min_.y - rightbox.min_.y < 0.0)
-    {
-        return -1;
-    }
-    else
-    {
-        return 1;
-    }
-    
+    return leftbox.getmin().y < rightbox.getmin().y;
 }
 
-int compare_z(const void *a, const void *b)
+static bool compare_z(const Hitable *a, const Hitable *b)
 {
     AABB leftbox, rightbox;
-    Hitable *hita = *(Hitable**)a;
-    Hitable *hitb = *(Hitable**)b;
-    if(!hita->bounding_box(0,0,leftbox) || !hitb->bounding_box(0,0,rightbox))
+    if(!a->bounding_box(0,0,leftbox) || !b->bounding_box(0,0,rightbox))
     {
         cerr << "BVH node has no bounding box." << endl;
     }
-    if(leftbox.min_.z - rightbox.min_.z < 0.0)
-    {
-        return -1;
-    }
-    else
-    {
-        return 1;
-    }
-    
+    return leftbox.getmin().z < rightbox.getmin().z;
 }
 
 
@@ -183,7 +153,7 @@ int compare_z(const void *a, const void *b)
 BVH_node::BVH_node(vector<Hitable *> &list, int start, int end)
 {
     //随机选一个轴
-    int axis = int(3 * rand());
+    int axis = int(3 * drand48());
     if(axis == 0)
         sort(&list[start], &list[end], compare_x);
     else if(axis == 1)

@@ -314,6 +314,7 @@ static bool TestLoadObj(const char* filename, const char* basepath = NULL,
 
 int main()
 {
-    TestLoadObj("cbox/cbox2.obj", "cbox/", false);
+    TestLoadObj("diningroom/diningroom.obj", "diningroom/", false);
+    //TestLoadObj("veach_mis/mis.obj", "veach_mis/", false);
     return 0;
 }

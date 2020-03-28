@@ -10,6 +10,7 @@ Vec3f reflect_dir(Vec3f &in, Vec3f &normal)
     return in - 2 * in.dotProduct(normal) * normal;
 }
 
+//----------------------------------------------------------------------------metal
 class Metal : public Material
 {
 public:
@@ -24,6 +25,17 @@ public:
             fuzz_ = 1;
         is_important_sample = false;
     }
+
+    Metal(string name, Vec3f albedo, float fuzz) : albedo_(albedo)
+    {
+        material_name_ = name;
+        if(fuzz < 1) 
+            fuzz_ = fuzz;
+        else 
+            fuzz_ = 1;
+        is_important_sample = false;
+    }
+    
     virtual ~Metal(){}
     virtual bool scatter(Ray &ray_in, HitRecord &hitrecord, ScatterRecord &srecord) const;
 };

@@ -101,6 +101,7 @@ void Raytracer::add_object(Hitable *target)
 
 void Raytracer::begin_frame()
 {
+    cout << "begin frame~~" << endl;
     for(int x = 0; x < m_objects.size(); x++)
     {
         //prerender
@@ -116,6 +117,7 @@ void Raytracer::begin_frame()
 
 void Raytracer::end_frame()
 {
+    cout << "end frame" << endl;
     BVH_node::destroy_tree(m_root);
     for(int i = 0; i < m_objects.size(); i++)
     {
@@ -176,6 +178,7 @@ void Raytracer::serial_render(Hitable *scene)
             col /= float(m_config.m_samplings);
             col = Vec3f(sqrt(col.x), sqrt(col.y), sqrt(col.z));
             draw_pixels(i, j, col);
+            cout << "draw pixel-----" << i << ", " << j << endl;
         }
     }
 }

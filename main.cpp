@@ -23,16 +23,17 @@ using namespace std;
 
 Raytracer tracer;
 Objloader objloader;
+Mtlloader mtlloader;
 
 void cornellbox()
 {
     tracer.init_tracer(256, 256);//长宽
-    Material *red_mat = new Lambertian(new Constant_texture(Vec3f(0.95,0.05,0.05)));
-    Material *white_mat = new Lambertian(new Constant_texture(Vec3f(0.85,0.75,0.65)));
-    Material *green_mat = new Lambertian(new Constant_texture(Vec3f(0.05,0.05,0.95)));
-    Material *light_mat = new Diffuse_light(new Constant_texture(Vec3f(10,10,10)),new Constant_texture(Vec3f(10,10,10)));
-    Material *aluminum_mat = new Metal(Vec3f(0.8, 0.85, 0.88), 0.0);
-    Material *glass_mat = new Dielectric(1.5);
+    Material *red_mat = new Lambertian("red", new Constant_texture(Vec3f(0.95,0.05,0.05)));
+    Material *white_mat = new Lambertian("white", new Constant_texture(Vec3f(0.85,0.75,0.65)));
+    Material *green_mat = new Lambertian("green", new Constant_texture(Vec3f(0.05,0.05,0.95)));
+    Material *light_mat = new Diffuse_light("light", new Constant_texture(Vec3f(10,10,10)),new Constant_texture(Vec3f(10,10,10)));
+    Material *aluminum_mat = new Metal("alumium_mat", Vec3f(0.8, 0.85, 0.88), 0.0);
+    Material *glass_mat = new Dielectric("glass", 1.5);
 
     Hitable *greenwall = new Turn_normal(new YZ_rectangle(0, 555, 0, 555, 555, green_mat));
     Hitable *redwall = new YZ_rectangle(0, 555, 0, 555, 0, red_mat);
@@ -51,7 +52,7 @@ void cornellbox()
     tracer.add_object(redwall);
     tracer.add_object(back);
     tracer.add_object(top);
-    tracer.add_object(light);
+    //tracer.add_object(light);
     tracer.add_object(whitesphere);
     tracer.add_object(glasssphere);
     tracer.add_important_sampling(light);
@@ -74,23 +75,22 @@ void cbox_scene()
     Camera *cameratmp = new Camera(39.3077, 1.0, lookfrom, lookat, up);
     tracer.m_config.m_camera = cameratmp;
     //预创建模型列表
-    vector<Material *> material_list;
-    Material *red_mat = new Lambertian(new Constant_texture(Vec3f(0.95,0.05,0.05)));
-    Material *white_mat = new Lambertian(new Constant_texture(Vec3f(0.85,0.75,0.65)));
-    Material *blue_mat = new Lambertian(new Constant_texture(Vec3f(0.05,0.05,0.95)));
-    Material *light_mat = new Diffuse_light(new Constant_texture(Vec3f(10,10,10)),new Constant_texture(Vec3f(0,0,0)));
-    Material *silver_mat = new Metal(Vec3f(0.77, 0.79, 0.73), 0.0);
-    Material *glass_mat = new Dielectric(1.5);
-    //材质的序号要和mtl文件中一致
-    material_list.push_back(blue_mat);//0
+    Material *red_mat = new Lambertian("cbox:red", new Constant_texture(Vec3f(0.95,0.05,0.05)));
+    Material *white_mat = new Lambertian("cbox:white", new Constant_texture(Vec3f(0.85,0.75,0.65)));
+    Material *blue_mat = new Lambertian("cbox:blue", new Constant_texture(Vec3f(0.05,0.05,0.95)));
+    Material *light_mat = new Diffuse_light("cbox:light", new Constant_texture(Vec3f(10,10,10)),new Constant_texture(Vec3f(0,0,0)));
+    Material *silver_mat = new Metal("cbox:silver", Vec3f(0.77, 0.79, 0.73), 0.0);
+    Material *glass_mat = new Dielectric("cbox:glass", 1.5);
+    
+    mtlloader.material_list_.push_back(blue_mat);//0
     //material_list.push_back(glass_mat);//1
-    material_list.push_back(light_mat);//2
-    material_list.push_back(red_mat);//3
-    material_list.push_back(white_mat);//4
+    mtlloader.material_list_.push_back(light_mat);//2
+    mtlloader.material_list_.push_back(red_mat);//3
+    mtlloader.material_list_.push_back(white_mat);//4
     //material_list.push_back(silver_mat);//5
-
+    objloader.mtl_loader_ = mtlloader;
     //加载模型
-    objloader.loadobj("cbox/try.obj", material_list, "cbox/");
+    objloader.loadobj("cbox/cbox2.obj", "cbox/");
     cout << "model number:" << objloader.modellist_.size();
     
     for(int i = 0; i < objloader.modellist_.size(); i++)
@@ -120,24 +120,24 @@ void bedroom()
     tracer.m_config.m_camera = cameratmp;
     
     //预创建模型列表
-    vector<Material *> material_list;
-    Material *bottle_mat = new Metal(Vec3f(0.95,0.05,0.05), 0.0);
-    Material *gold_mat = new Metal(Vec3f(0.85,0.75,0.65), 0.0);
-    Material *lamp_mat = new Metal(Vec3f(0.05,0.05,0.95), 0.0);
-    Material *light1_mat = new Diffuse_light(new Constant_texture(Vec3f(20,10,20)),new Constant_texture(Vec3f(0,0,0)));
-    Material *light3_mat = new Diffuse_light(new Constant_texture(Vec3f(20,20,10)),new Constant_texture(Vec3f(0,0,0)));
-    Material *silver_mat = new Metal(Vec3f(0.77, 0.79, 0.73), 0.0);
-    Material *white_mat = new Lambertian(new Constant_texture(Vec3f(0.4,0.4,0.4)));
+    Material *bottle_mat = new Metal("scene1:bottle", Vec3f(0.95,0.05,0.05), 0.0);
+    Material *gold_mat = new Metal("scene1:gold", Vec3f(0.85,0.75,0.65), 0.0);
+    Material *lamp_mat = new Metal("scene1:lamp", Vec3f(0.05,0.05,0.95), 0.0);
+    Material *light1_mat = new Diffuse_light("scene1:light1", new Constant_texture(Vec3f(20,10,20)),new Constant_texture(Vec3f(0,0,0)));
+    Material *light3_mat = new Diffuse_light("scene1:light3", new Constant_texture(Vec3f(20,20,10)),new Constant_texture(Vec3f(0,0,0)));
+    Material *silver_mat = new Metal("scene1:silver", Vec3f(0.77, 0.79, 0.73), 0.0);
+    Material *white_mat = new Lambertian("scene1:white", new Constant_texture(Vec3f(0.4,0.4,0.4)));
     //材质的序号要和mtl文件中一致
-    material_list.push_back(bottle_mat);//0
-    material_list.push_back(gold_mat);//1
-    material_list.push_back(lamp_mat);//2
-    material_list.push_back(light1_mat);//3
-    material_list.push_back(light3_mat);//4
-    material_list.push_back(silver_mat);//5
-    material_list.push_back(white_mat);//6
+    mtlloader.material_list_.push_back(bottle_mat);//0
+    mtlloader.material_list_.push_back(gold_mat);//1
+    mtlloader.material_list_.push_back(lamp_mat);//2
+    mtlloader.material_list_.push_back(light1_mat);//3
+    mtlloader.material_list_.push_back(light3_mat);//4
+    mtlloader.material_list_.push_back(silver_mat);//5
+    mtlloader.material_list_.push_back(white_mat);//6
+    objloader.mtl_loader_ = mtlloader;
     //加载模型
-    objloader.loadobj("diningroom/diningroom.obj", material_list, "diningroom/");
+    objloader.loadobj("diningroom/diningroom.obj", "diningroom/");
     cout << "model number:" << objloader.modellist_.size();
     
     for(int i = 0; i < objloader.modellist_.size(); i++)
@@ -166,35 +166,55 @@ void veach_mis()
     Camera *cameratmp = new Camera(28, aspect, lookfrom, lookat, up);
     tracer.m_config.m_camera = cameratmp;
     //预创建模型列表
-    vector<Material *> material_list;
-    Material *bottle_mat = new Metal(Vec3f(0.95,0.05,0.05), 0.0);
-    Material *gold_mat = new Metal(Vec3f(0.85,0.75,0.65), 0.0);
-    Material *lamp_mat = new Metal(Vec3f(0.05,0.05,0.95), 0.0);
-    Material *light1_mat = new Diffuse_light(new Constant_texture(Vec3f(20,10,20)),new Constant_texture(Vec3f(0,0,0)));
-    Material *light3_mat = new Diffuse_light(new Constant_texture(Vec3f(20,20,10)),new Constant_texture(Vec3f(0,0,0)));
-    Material *silver_mat = new Metal(Vec3f(0.77, 0.79, 0.73), 0.0);
-    Material *white_mat = new Lambertian(new Constant_texture(Vec3f(0.4,0.4,0.4)));
-    //材质的序号要和mtl文件中一致
-    material_list.push_back(bottle_mat);//0
-    material_list.push_back(gold_mat);//1
-    material_list.push_back(lamp_mat);//2
-    material_list.push_back(light1_mat);//3
-    material_list.push_back(light3_mat);//4
-    material_list.push_back(silver_mat);//5
-    material_list.push_back(white_mat);//6
-    //objloader.loadobj("veach_mis/veach_mis.obj", "veach_mis/");
+    Material *lambert7SG_mat = new Lambertian("mi:lambert7SG", new Constant_texture(Vec3f(0.4,0.4,0.4)));
+    Material *light1_mat = new Diffuse_light("mi:light1",new Constant_texture(Vec3f(901.8,901.8,901.8)),new Constant_texture(Vec3f(0,0,0)));
+    Material *light2_mat = new Diffuse_light("mi:light2",new Constant_texture(Vec3f(100,100,100)),new Constant_texture(Vec3f(0,0,0)));
+    Material *light3_mat = new Diffuse_light("mi:light3",new Constant_texture(Vec3f(11.11,11.11,11.11)),new Constant_texture(Vec3f(0,0,0)));
+    Material *light4_mat = new Diffuse_light("mi:light4",new Constant_texture(Vec3f(1.24,1.24,1.24)),new Constant_texture(Vec3f(0,0,0)));
+    Material *light5_mat = new Diffuse_light("mi:light5",new Constant_texture(Vec3f(800,800,800)),new Constant_texture(Vec3f(0,0,0)));
+    Material *plate1_mat = new Metal("mi:plate_1", Vec3f(0.07, 0.09, 0.13), 0.0);
+    Material *plate2_mat = new Metal("mi:plate_2", Vec3f(0.07, 0.09, 0.13), 0.0);
+    Material *plate3_mat = new Metal("mi:plate_3", Vec3f(0.07, 0.09, 0.13), 0.0);
+    Material *plate5_mat = new Metal("mi:plate_5", Vec3f(0.07, 0.09, 0.13), 0.0);
+    mtlloader.material_list_.push_back(lambert7SG_mat);//0
+    mtlloader.material_list_.push_back(light1_mat);//1
+    mtlloader.material_list_.push_back(light2_mat);//2
+    mtlloader.material_list_.push_back(light3_mat);//3
+    mtlloader.material_list_.push_back(light4_mat);//4
+    mtlloader.material_list_.push_back(light5_mat);//5
+    mtlloader.material_list_.push_back(plate1_mat);//6
+    mtlloader.material_list_.push_back(plate2_mat);//7
+    mtlloader.material_list_.push_back(plate3_mat);//8
+    mtlloader.material_list_.push_back(plate5_mat);//9
+    objloader.mtl_loader_ = mtlloader;
+    objloader.loadobj("veach_mis/mis.obj", "veach_mis/");
+    cout << "model number:" << objloader.modellist_.size();
+    for(int i = 0; i < objloader.modellist_.size(); i++)
+    {
+        //根据材质决定是否重要性采样
+        if(objloader.modellist_[i]->mtl_ptr_->is_important_sample == true)
+        {
+            tracer.add_important_sampling(objloader.modellist_[i]);
+        }
+        else
+        {
+            tracer.add_object(objloader.modellist_[i]);
+        }
+    }
+
 }
 
 int main()
 {
     //init tracer
     tracer.set_recursion_depth(30);
-    tracer.set_sampling_num(100);
+    tracer.set_sampling_num(10);
 
     //choose scene:
-    //cbox_scene();
+    cbox_scene();
     //cornellbox();
-    bedroom();
+    //bedroom();
+    //veach_mis();
 
     //render:
     double total_time = 0.0;
@@ -207,7 +227,7 @@ int main()
 
     //write to image
     stbi_flip_vertically_on_write(1);
-    stbi_write_png("./scene1result2.png", tracer.m_config.m_width, tracer.m_config.m_height, 3,
+    stbi_write_png("./scene2result2.png", tracer.m_config.m_width, tracer.m_config.m_height, 3,
                 tracer.m_image, tracer.m_config.m_width * 3);
     cout << "render finished!\n";
     cout << "total time: " << total_time << endl;

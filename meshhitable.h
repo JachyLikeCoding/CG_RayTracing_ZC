@@ -34,7 +34,7 @@ bool MeshHitable::triangle_hit(Ray &ray, float t_min, float t_max, HitRecord &hi
                         const Vertex &p0, const Vertex &p1, const Vertex &p2, const Vec3f &normal) const
 {
     float n_dot_dir = normal.dotProduct(ray.direction_);
-    // no intersection.
+    //没交点
     if (fabs(n_dot_dir - 0.0) < kEpsilon)
         return false;
     float d = -normal.dotProduct(p0.m_position_);
@@ -44,7 +44,7 @@ bool MeshHitable::triangle_hit(Ray &ray, float t_min, float t_max, HitRecord &hi
     hitrecord.t_ = t;
     hitrecord.hitpoint_ = ray.get_t_location(t);
     hitrecord.mtl_ptr_ = mtl_ptr_;
-    // judge inside or not.
+    
     Vec3f r = hitrecord.hitpoint_ - p0.m_position_;
     Vec3f q1 = p1.m_position_ - p0.m_position_;
     Vec3f q2 = p2.m_position_ - p0.m_position_;
@@ -112,9 +112,9 @@ void MeshHitable::prerender()
         min_point.x = fmin(min_point.x, m_vertices_[i].m_position_.x);
         min_point.y = fmin(min_point.y, m_vertices_[i].m_position_.y);
         min_point.z = fmin(min_point.z, m_vertices_[i].m_position_.z);
-        max_point.x = fmin(max_point.x, m_vertices_[i].m_position_.x);
-        max_point.y = fmin(max_point.y, m_vertices_[i].m_position_.y);
-        max_point.z = fmin(max_point.z, m_vertices_[i].m_position_.z);
+        max_point.x = fmax(max_point.x, m_vertices_[i].m_position_.x);
+        max_point.y = fmax(max_point.y, m_vertices_[i].m_position_.y);
+        max_point.z = fmax(max_point.z, m_vertices_[i].m_position_.z);
     }
 
     if(fabs(max_point.x - min_point.x) < kEpsilon)
